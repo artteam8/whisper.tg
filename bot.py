@@ -8,14 +8,20 @@ from aiogram import Bot, Dispatcher, Router
 from aiogram import F
 from aiogram.filters import Command
 from aiogram.types import BufferedInputFile, Message
+from aiogram.client.session.aiohttp import AiohttpSession
+from aiogram.client.telegram import TelegramAPIServer
 import subprocess
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
+session = AiohttpSession(
+    api=TelegramAPIServer.from_base('http://localhost:8081')
+)
+
 API_TOKEN = os.getenv("API_TOKEN")
-bot = Bot(token=API_TOKEN)
+bot = Bot(token=API_TOKEN, session=session)
 dp = Dispatcher()
 router = Router()
 dp.include_router(router)
@@ -33,10 +39,15 @@ async def send_welcome(message: Message):
 async def file_to_np(file_id: str, bot: Bot, ftype: str) -> np.array:
     file = await bot.get_file(file_id)
     file_path = file.file_path
+    print(file.file_path)
 
-    downloaded_file_buffer = BytesIO()
-    await bot.download_file(file_path, downloaded_file_buffer)
-    downloaded_file_buffer.seek(0)
+    #downloaded_file_buffer = BytesIO()
+    #await bot.download_file(file_path, downloaded_file_buffer)
+    #downloaded_file_buffer.seek(0)
+    with open(file_path, "rb") as file:
+        file_bytes = file.read()
+
+    downloaded_file_buffer = BytesIO(file_bytes)
 
     # converting any audio format to librosa compatible (wav)
     audio = AudioSegment.from_file(downloaded_file_buffer, format=ftype)
